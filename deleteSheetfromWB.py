@@ -31,5 +31,5 @@ def delete_sheet_if_exists(sheet_name):
         # app.display_alerts = True
 
 
-sheet_name_to_delete = "30-Sep"  # Replace with the name of the sheet you want to delete
+sheet_name_to_delete = "10-Oct"  # Replace with the name of the sheet you want to delete
 delete_sheet_if_exists(sheet_name_to_delete)
