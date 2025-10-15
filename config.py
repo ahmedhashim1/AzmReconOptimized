@@ -1,6 +1,6 @@
 class AppConfig:
     def __init__(self):
-        self.curr_day = 9
+        self.curr_day = 15
         self.curr_month = 10
         self.curr_year = 2025
 
