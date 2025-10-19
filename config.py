@@ -1,6 +1,7 @@
 class AppConfig:
     def __init__(self):
-        self.curr_day = 15
+        self.curr_day = 19
+        self.curr_day_Email = 15
         self.curr_month = 10
         self.curr_year = 2025
 
@@ -30,6 +31,7 @@ class AppConfig:
 
 
         self.dailyfile_name = rf"AllCustomersDailyFile_{pad_number(self.curr_day)}.xlsx"
+        self.billerRepEmailDay = rf"{pad_number(self.curr_day_Email)}"
 
 
         # BILLER_REPORT_BASE = rf"E:\ReconTest\Biller Reports"

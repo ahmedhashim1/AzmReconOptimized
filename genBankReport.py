@@ -71,7 +71,7 @@ def generate_bank_report(input_file_path, sheet_name, output_file_path):
 
         # --- Combine and process the dataframes ---
         data_dict = {
-            "Date": biller_names,
+            "Billers": biller_names,
             "Main Billers Amount": main_amounts,
             "Sub Billers Amount": [''] * len(main_amounts),
             "Total": total_amounts

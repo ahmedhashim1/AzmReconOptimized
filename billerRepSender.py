@@ -324,10 +324,10 @@ class EmailSender:
         curr_year = date.year
         curr_month_abbr = date.strftime("%b")  # Jan, Feb, etc.
         curr_month_full = date.strftime("%B")  # January, February, etc.
-        curr_day = date.strftime("%d")  # 01, 02, etc.
+        curr_day_Email = date.strftime("%d")  # 01, 02, etc.
 
         # Construct primary file path
-        file_name = f"{customer_name} Report {curr_day}-{curr_month_full}.xlsx"
+        file_name = f"{customer_name} Report {curr_day_Email}-{curr_month_full}.xlsx"
         file_path = os.path.join(
             config.biller_base,
             customer_name,
@@ -341,7 +341,7 @@ class EmailSender:
             return file_path
 
         # Try alternative path (WITHOUT Reference ID)
-        alt_file_name = f"(WITHOUT Reference ID) {customer_name} Report {curr_day}-{curr_month_full}.xlsx"
+        alt_file_name = f"(WITHOUT Reference ID) {customer_name} Report {curr_day_Email}-{curr_month_full}.xlsx"
         alt_file_path = os.path.join(
             config.biller_base,
             customer_name,
@@ -387,7 +387,7 @@ class EmailSender:
         <b>Dear {customer_name} company,</b><br><br>
         Please be informed that the due amounts have been successfully transferred to your account. 
         Kindly find attached the payment report reflecting the transactions received from your 
-        customers dated {date_str}<br><br><br><br><br><br><br>
+        customers dated {date_str}<br><br><br><br><br><br><br><br><br>
         {self.auto_response}
         """
 
@@ -594,7 +594,7 @@ if __name__ == "__main__":
             print(f"  Email: {sender.outlook_account.SmtpAddress}\n")
 
         # Example: Create emails in Outbox for a specific date and type
-        report_date = datetime(config.curr_year, config.curr_month, config.curr_day)
+        report_date = datetime(config.curr_year, config.curr_month, config.curr_day_Email)
         transaction_type = "All"  # Can be: Manual, B2B, VIP, WithRef, All
 
         # Create batch emails in Outlook Outbox
