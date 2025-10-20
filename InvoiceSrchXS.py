@@ -27,8 +27,8 @@ class DatabaseConfig:
 class AccessDatabaseSearchFilter:
     """Multi-threaded search and filter for Access database"""
 
-    def __init__(self, config: DatabaseConfig, num_search_threads: int = 3,
-                 num_insert_threads: int = 2, batch_size: int = 100):
+    def __init__(self, config: DatabaseConfig, num_search_threads: int = 5,
+                 num_insert_threads: int = 3, batch_size: int = 100):
         self.config = config
         self.num_search_threads = num_search_threads
         self.num_insert_threads = num_insert_threads
@@ -300,8 +300,8 @@ def main():
 
     search_filter = AccessDatabaseSearchFilter(
         config=config,
-        num_search_threads=3,  # Threads for MySQL queries
-        num_insert_threads=2,  # Threads for Access inserts
+        num_search_threads=5,  # Threads for MySQL queries
+        num_insert_threads=3,  # Threads for Access inserts
         batch_size=100  # Records per batch
     )
 

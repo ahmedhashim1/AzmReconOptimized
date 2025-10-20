@@ -26,7 +26,7 @@ m_date = datetime(m_year, m_month, m_day)
 path_month_abbr = m_date.strftime("%b")
 path_year = m_date.strftime("%Y")
 path_month_full = m_date.strftime("%B")
-path_month_abbr = m_date.strftime("%b")
+# path_month_abbr = m_date.strftime("%b")
 path_day = m_date.strftime("%d")
 # trans_date = date.strftime("%Y/%m/%d")
 

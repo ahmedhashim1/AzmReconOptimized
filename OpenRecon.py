@@ -718,6 +718,7 @@ def process_biller_summary_optimized(path_year, path_month_full, path_month_abbr
             rf"Bcare - {path_month_full} Internal Reconciliation Summary.xlsx": "Table7",
             rf"Damin - {path_month_full} Internal Reconciliation Summary.xlsx": "Table8",
             rf"Thiqah - {path_month_full} Internal Reconciliation Summary.xlsx": "Table15",
+            rf"Tatbeeq - {path_month_full} Internal Reconciliation Summary.xlsx": "Table21",
             rf"TameeniElectronic - {path_month_full} Internal Reconciliation Summary.xlsx": "Table16",
         }
 
