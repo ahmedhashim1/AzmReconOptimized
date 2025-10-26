@@ -711,6 +711,7 @@ def process_biller_summary_optimized(path_year, path_month_full, path_month_abbr
             rf"ThiqaNafith - {path_month_full} Internal Reconciliation Summary.xlsx": 8,
             rf"Asnad - {path_month_full} Internal Reconciliation Summary.xlsx": 8,
             rf"Tatbeeq - {path_month_full} Internal Reconciliation Summary.xlsx": 8,
+            rf"LeadInsure - {path_month_full} Internal Reconciliation Summary.xlsx": 8,
             rf"TameeniElectronic - {path_month_full} Internal Reconciliation Summary.xlsx": 11,
         }
 
@@ -719,6 +720,7 @@ def process_biller_summary_optimized(path_year, path_month_full, path_month_abbr
             rf"Damin - {path_month_full} Internal Reconciliation Summary.xlsx": "Table8",
             rf"Thiqah - {path_month_full} Internal Reconciliation Summary.xlsx": "Table15",
             rf"Tatbeeq - {path_month_full} Internal Reconciliation Summary.xlsx": "Table21",
+            rf"LeadInsure - {path_month_full} Internal Reconciliation Summary.xlsx": "Table22",
             rf"TameeniElectronic - {path_month_full} Internal Reconciliation Summary.xlsx": "Table16",
         }
 
