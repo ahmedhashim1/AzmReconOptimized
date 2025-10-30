@@ -387,7 +387,7 @@ class EmailSender:
         <b>Dear {customer_name} company,</b><br><br>
         Please be informed that the due amounts have been successfully transferred to your account. 
         Kindly find attached the payment report reflecting the transactions received from your 
-        customers dated {date_str}<br><br><br><br><br><br><br><br><br>
+        customers dated {date_str}.<br><br><br><br><br><br><br><br><br>
         {self.auto_response}
         """
 
