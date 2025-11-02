@@ -5,8 +5,8 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 # Date setup
-date_str = "2025-09-30"
-date = datetime(2025, 9, 30)
+date_str = "2025-10-31"
+date = datetime(2025, 10, 31)
 date_obj = datetime.strptime(date_str, "%Y-%m-%d")
 
 
@@ -94,7 +94,7 @@ def copy_and_rename_files(base_dir, old_month, new_month):
 if __name__ == "__main__":
     base_dir = rf"D:\Freelance\Azm\OneDrive - AZM Saudi\Customers\Reconcilation Reports"  # Replace with the actual base directory path
     # Ensure to change 2 dates also in top of this module to the last working day of old month
-    old_month = "Sep"  # Replace with the actual old month
-    new_month = "Oct"  # Replace with the actual new month
+    old_month = "Oct"  # Replace with the actual old month
+    new_month = "Nov"  # Replace with the actual new month
 
     copy_and_rename_files(base_dir, old_month, new_month)

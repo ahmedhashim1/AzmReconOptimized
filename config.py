@@ -1,8 +1,8 @@
 class AppConfig:
     def __init__(self):
-        self.curr_day = 30
-        self.curr_day_Email = 26
-        self.curr_month = 10
+        self.curr_day = 2
+        self.curr_day_Email = 29
+        self.curr_month = 11
         self.curr_year = 2025
 
         def pad_number(number, width=2, fillchar='0'):
