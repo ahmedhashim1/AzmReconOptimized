@@ -594,7 +594,7 @@ if __name__ == "__main__":
             print(f"  Email: {sender.outlook_account.SmtpAddress}\n")
 
         # Example: Create emails in Outbox for a specific date and type
-        report_date = datetime(config.curr_year, config.curr_month, config.curr_day_Email)
+        report_date = datetime(config.curr_year_Email, config.curr_month_Email, config.curr_day_Email)
         transaction_type = "All"  # Can be: Manual, B2B, VIP, WithRef, All
 
         # Create batch emails in Outlook Outbox
@@ -602,7 +602,7 @@ if __name__ == "__main__":
         results = sender.send_batch_emails(
             date=report_date,
             trans_type=transaction_type,
-            save_to_drafts=False  # Change to True to save in Drafts folder
+            save_to_drafts=True  # Change to True to save in Drafts folder
         )
 
         print(f"\n{'=' * 60}")
