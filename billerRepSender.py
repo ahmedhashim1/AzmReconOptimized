@@ -602,7 +602,7 @@ if __name__ == "__main__":
         results = sender.send_batch_emails(
             date=report_date,
             trans_type=transaction_type,
-            save_to_drafts=True  # Change to True to save in Drafts folder
+            save_to_drafts=False  # Change to True to save in Drafts folder
         )
 
         print(f"\n{'=' * 60}")

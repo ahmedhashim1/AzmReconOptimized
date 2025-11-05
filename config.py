@@ -2,13 +2,13 @@ class AppConfig:
     def __init__(self):
 
         #For reconciliation
-        self.curr_day = 3
+        self.curr_day = 5
         self.curr_month = 11
         self.curr_year = 2025
 
         #For Email sender
-        self.curr_day_Email = 30
-        self.curr_month_Email = 10
+        self.curr_day_Email = 2
+        self.curr_month_Email = 11
         self.curr_year_Email = 2025
 
         def pad_number(number, width=2, fillchar='0'):

@@ -5,6 +5,10 @@ import pyodbc
 import logging
 import os
 import psutil
+import pandas as pd
+import tempfile
+import win32com.client
+import time
 from datetime import datetime
 from typing import List, Optional
 
@@ -15,10 +19,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
-# ---------------- Config ----------------
 class DatabaseConfig:
-    """Database configuration settings"""
     def __init__(self, access_db_path: str, mysql_host: str, mysql_port: int,
                  mysql_db: str, mysql_user: str, mysql_password: str):
         self.access_db_path = access_db_path
@@ -28,14 +29,10 @@ class DatabaseConfig:
         self.mysql_user = mysql_user
         self.mysql_password = mysql_password
 
-
-# ---------------- Main Class ----------------
 class AsyncMySQLToSQLite:
-    """Async MySQL search -> SQLite insert (cleared each run) -> optional Access export"""
-
     def __init__(self, config: DatabaseConfig, batch_size: int = 500,
                  start_date: Optional[str] = None, end_date: Optional[str] = None,
-                 sqlite_path: str = "dailyfiledto_filtered.sqlite"):
+                 sqlite_path: str = "hyperpay_filtered.sqlite"):
         self.config = config
         self.batch_size = batch_size
         self.start_date = start_date
@@ -47,7 +44,6 @@ class AsyncMySQLToSQLite:
         self.max_concurrency = max(4, min(2 * cpu_cores, 32))
         logger.info(f"Adaptive concurrency = {self.max_concurrency}")
 
-    # ---------------- Connections ----------------
     def get_access_connection(self):
         conn_str = (
             r"Driver={Microsoft Access Driver (*.mdb, *.accdb)};"
@@ -68,21 +64,18 @@ class AsyncMySQLToSQLite:
         )
         return pool
 
-    # ---------------- Access (for export only) ----------------
     def clear_access_table(self):
         conn = self.get_access_connection()
         cursor = conn.cursor()
         try:
-            cursor.execute("DELETE FROM dailyfiledto_filtered")
+            cursor.execute("DELETE FROM Hyperpay_filtered")
             conn.commit()
-            logger.info("Cleared Access table dailyfiledto_filtered")
+            logger.info("Cleared Access table Hyperpay_filtered")
         finally:
             cursor.close()
             conn.close()
 
-    # ---------------- Async MySQL Search ----------------
     async def search_batch(self, pool, batch, batch_id):
-        """Async search for a batch of biller names"""
         results = []
         placeholders = ",".join(["%s"] * len(batch))
         date_filter = ""
@@ -112,13 +105,11 @@ class AsyncMySQLToSQLite:
         return results
 
     async def execute_search_async(self, biller_names: List[str]):
-        """Run async MySQL searches concurrently with adaptive control"""
         logger.info("Starting async MySQL search...")
 
         concurrency = self.max_concurrency
         pool = await self.get_mysql_pool(concurrency)
 
-        # Simple load check
         load = psutil.cpu_percent(interval=1)
         if load > 80:
             concurrency = max(4, concurrency // 2)
@@ -148,9 +139,7 @@ class AsyncMySQLToSQLite:
 
         logger.info(f"Async search complete. Total records: {len(self.all_results)}")
 
-    # ---------------- SQLite Writer ----------------
     def write_to_sqlite(self):
-        """Insert all results into SQLite (safe, fast, cleared before each run)"""
         if not self.all_results:
             logger.warning("No results to insert into SQLite.")
             return
@@ -163,9 +152,8 @@ class AsyncMySQLToSQLite:
         conn = sqlite3.connect(self.sqlite_path, timeout=30)
         cur = conn.cursor()
 
-        # Create table if not exists
         create_sql = """
-        CREATE TABLE IF NOT EXISTS dailyfiledto_filtered (
+        CREATE TABLE IF NOT EXISTS Hyperpay_filtered (
             Cust TEXT,
             [Index] INTEGER,
             BillerName TEXT,
@@ -187,16 +175,15 @@ class AsyncMySQLToSQLite:
         cur.execute(create_sql)
         conn.commit()
 
-        # Clear the table before inserting
         try:
-            cur.execute("DELETE FROM dailyfiledto_filtered")
+            cur.execute("DELETE FROM Hyperpay_filtered")
             conn.commit()
-            logger.info("Cleared SQLite table dailyfiledto_filtered before inserting new records.")
+            logger.info("Cleared SQLite table Hyperpay_filtered before inserting new records.")
         except Exception as e:
             logger.warning(f"Could not clear SQLite table (ignored): {e}")
 
         insert_sql = """
-        INSERT INTO dailyfiledto_filtered
+        INSERT INTO Hyperpay_filtered
         (Cust, [Index], BillerName, InvoiceNum, InvAmount, AmountPaid,
          PayDate, OpFee, PostPaidShare, SubBillerName, SubBillerShare,
          DedFeeSubPost, InternalCode, Comments, ContractNum, fdate)
@@ -215,122 +202,83 @@ class AsyncMySQLToSQLite:
         conn.close()
         logger.info("✅ SQLite insert complete.")
 
-    # ---------------- Export SQLite -> Access ----------------
     def export_to_access(self):
-        """
-        Export only records from SQLite → Access where ANY field matches
-        an invoice number found in Access table [InvoiceNumSrch].
-        """
-        logger.info("Preparing filtered export (match ANY field) from SQLite → Access")
+        logger.info("Starting Unicode-safe ultra-fast export: SQLite → Excel → Access")
 
         if not os.path.exists(self.sqlite_path):
             logger.error(f"SQLite file not found: {self.sqlite_path}")
             return
 
-        # ---------------- Fetch invoice numbers from Access ----------------
-        conn_access_src = self.get_access_connection()
-        cur_access_src = conn_access_src.cursor()
-        cur_access_src.execute("SELECT InvoiceNum FROM InvoiceNumSrch")
-        invoice_nums = [str(row[0]).strip() for row in cur_access_src.fetchall() if row[0]]
-        cur_access_src.close()
-        conn_access_src.close()
-
-        if not invoice_nums:
-            logger.warning("No invoice numbers found in Access.InvoiceNumSrch — skipping export.")
-            return
-
-        logger.info(f"Fetched {len(invoice_nums)} invoice numbers from Access.InvoiceNumSrch")
-
-        # ---------------- Discover SQLite table structure ----------------
         conn_sqlite = sqlite3.connect(self.sqlite_path)
-        cur_sqlite = conn_sqlite.cursor()
-        cur_sqlite.execute("PRAGMA table_info(dailyfiledto_filtered)")
-        columns = [row[1] for row in cur_sqlite.fetchall()]
-        # Quote each column safely for SQLite (handles reserved words like Index)
-        quoted_columns = [f'"{col}"' for col in columns]
-        logger.info(f"SQLite columns detected: {columns}")
+        df = pd.read_sql_query("SELECT * FROM Hyperpay_filtered", conn_sqlite)
+        conn_sqlite.close()
+        total_records = len(df)
+        logger.info(f"Total records to export: {total_records}")
 
-        # ---------------- Search Matches Across All Columns ----------------
-        matched_rows = []
-        chunk_size = 300  # for SQLite parameter limit safety
-        total_invoices = len(invoice_nums)
-
-        logger.info("Searching SQLite for any matches across all columns...")
-        for i in range(0, total_invoices, chunk_size):
-            chunk = invoice_nums[i:i + chunk_size]
-
-            # Build WHERE clause for this chunk
-            placeholders = ",".join("?" * len(chunk))
-            conditions = [f"CAST({col} AS TEXT) IN ({placeholders})" for col in quoted_columns]
-            query = f"SELECT * FROM dailyfiledto_filtered WHERE {' OR '.join(conditions)}"
-
-            # Parameters repeated for each column in OR set
-            params = chunk * len(columns)
-            cur_sqlite.execute(query, params)
-            rows = cur_sqlite.fetchall()
-            matched_rows.extend(rows)
-            logger.info(f"Chunk {i // chunk_size + 1}: Found {len(rows)} matching rows")
-
-        if not matched_rows:
-            logger.warning("No matching records found in SQLite — nothing to export.")
-            conn_sqlite.close()
+        if total_records == 0:
+            logger.warning("No records found to export.")
             return
 
-        logger.info(f"Total matched records to export: {len(matched_rows)}")
+        temp_xlsx = os.path.join(tempfile.gettempdir(), "hyperpay_export.xlsx")
+        logger.info(f"Exporting SQLite data to Excel: {temp_xlsx}")
+        df.to_excel(temp_xlsx, index=False)
 
-        # ---------------- Export to Access ----------------
         self.clear_access_table()
-        conn_access_dest = self.get_access_connection()
-        cur_access_dest = conn_access_dest.cursor()
 
-        insert_query = """
-            INSERT INTO dailyfiledto_filtered 
-            (Cust, [Index], BillerName, InvoiceNum, InvAmount, AmountPaid, 
-             PayDate, OpFee, PostPaidShare, SubBillerName, SubBillerShare, 
-             DedFeeSubPost, InternalCode, Comments, ContractNum, fdate)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """
+        time.sleep(2)  # allow ODBC to release lock
 
-        total = len(matched_rows)
-        batch_size = 50
-        inserted = 0
-        logger.info("Starting export to Access (any-field matches)...")
+        logger.info("Importing Excel into Access via TransferSpreadsheet...")
+        try:
+            access_app = win32com.client.Dispatch("Access.Application")
 
-        for i in range(0, total, batch_size):
-            batch = matched_rows[i:i + batch_size]
-            cur_access_dest.executemany(insert_query, batch)
-            conn_access_dest.commit()
-            inserted += len(batch)
-            logger.info(f"Access export: {inserted}/{total} inserted")
+            for attempt in range(3):
+                try:
+                    access_app.OpenCurrentDatabase(self.config.access_db_path, False)
+                    access_app.Visible = False  # 👈 set visibility AFTER opening
+                    break
+                except Exception as e:
+                    logger.warning(f"Access still locked (attempt {attempt+1}/3). Retrying in 2s...")
+                    time.sleep(2)
+            else:
+                raise Exception("Failed to open Access database after 3 attempts.")
 
-        cur_access_dest.close()
-        conn_access_dest.close()
-        conn_sqlite.close()
-        logger.info("✅ Filtered export to Access (any-field match) complete.")
+            access_app.DoCmd.TransferSpreadsheet(
+                TransferType=0,
+                SpreadsheetType=10,
+                TableName="Hyperpay_filtered",
+                FileName=temp_xlsx,
+                HasFieldNames=True
+            )
 
-    # ---------------- Main Run ----------------
+            access_app.CloseCurrentDatabase()
+            access_app.Quit()
+            logger.info(f"✅ Ultra-fast Excel import complete ({total_records} records).")
+
+        except Exception as e:
+            logger.error(f"TransferSpreadsheet import failed: {e}")
+        finally:
+            try:
+                os.remove(temp_xlsx)
+            except:
+                pass
+
     async def run(self):
         start = datetime.now()
         logger.info("=" * 60)
-        logger.info("Starting full async MySQL → SQLite (cleared each run) → optional Access export process")
+        logger.info("Starting full async MySQL → SQLite (cleared each run) → Access export process")
         logger.info("=" * 60)
 
-        # Fetch biller names from Access
         names = self.fetch_biller_names()
         if not names:
             logger.warning("No biller names found in Access table BillerSrch.")
             return
 
-        # Run async MySQL search
         await self.execute_search_async(names)
-
-        # Write to SQLite (cleared first)
         self.write_to_sqlite()
 
         elapsed = (datetime.now() - start).total_seconds()
         logger.info(f"Process completed successfully in {elapsed:.2f}s")
 
-    # ---------------- Access helper ----------------
     def fetch_biller_names(self) -> List[str]:
         conn = self.get_access_connection()
         cur = conn.cursor()
@@ -340,8 +288,6 @@ class AsyncMySQLToSQLite:
         conn.close()
         return names
 
-
-# ---------------- Entry Point ----------------
 def main():
     config = DatabaseConfig(
         access_db_path=r"D:\Freelance\Azm\DailyTrans.accdb",
@@ -352,7 +298,7 @@ def main():
         mysql_password="root"
     )
 
-    start_date = "2025-07-01"
+    start_date = "2025-10-01"
     end_date = "2025-10-31"
 
     pipeline = AsyncMySQLToSQLite(
@@ -360,16 +306,11 @@ def main():
         batch_size=5000,
         start_date=start_date,
         end_date=end_date,
-        sqlite_path=r"D:\Freelance\Azm\dailyfiledto_filtered.sqlite"
+        sqlite_path=r"D:\Freelance\Azm\hyperpay_filtered.sqlite"
     )
 
     asyncio.run(pipeline.run())
-
-    # Optional export step
-    export_to_access = True  # set False to skip
-    if export_to_access:
-        pipeline.export_to_access()
-
+    pipeline.export_to_access()
 
 if __name__ == "__main__":
     main()
