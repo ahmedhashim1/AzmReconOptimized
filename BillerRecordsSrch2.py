@@ -352,8 +352,8 @@ def main():
         mysql_password="root"
     )
 
-    start_date = "2025-07-01"
-    end_date = "2025-10-31"
+    start_date = "2025-11-01"
+    end_date = "2025-11-06"
 
     pipeline = AsyncMySQLToSQLite(
         config=config,

@@ -2,12 +2,12 @@ class AppConfig:
     def __init__(self):
 
         #For reconciliation
-        self.curr_day = 5
+        self.curr_day = 9
         self.curr_month = 11
         self.curr_year = 2025
 
         #For Email sender
-        self.curr_day_Email = 2
+        self.curr_day_Email = 4
         self.curr_month_Email = 11
         self.curr_year_Email = 2025
 

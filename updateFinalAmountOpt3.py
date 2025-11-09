@@ -233,7 +233,7 @@ def process_single_customer(customer_data: Tuple[str, str, float]) -> Tuple[bool
 
 
 def process_customer_data_multithreaded(customer_list_file_path: str, customer_data_file_path: str,
-                                        max_workers: int = 2):
+                                        max_workers: int = 3):
     """
     Processes customer data using multi-threading for improved performance.
     Reduced max_workers default to 2 for better stability with Excel.
